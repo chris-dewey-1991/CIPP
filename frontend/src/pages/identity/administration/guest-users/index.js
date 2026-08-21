@@ -86,13 +86,14 @@ const Page = () => {
     defaultCached: true,
     allowAllTenantSync: true,
     cacheColumns: ['CacheTimestamp'],
+    serverPagination: true,
   })
 
   // Same url/data/queryKey as the table below, so react-query shares one request
-  // between the summary cards and the table.
+  // between the summary cards and the table; data must match what CippTablePage builds.
   const guestData = ApiGetCallWithPagination({
     url: reportDB.resolvedApiUrl,
-    data: { tenantFilter: currentTenant },
+    data: { tenantFilter: currentTenant, ...reportDB.resolvedApiData },
     queryKey: reportDB.resolvedQueryKey,
     waiting: true,
   })
@@ -100,7 +101,8 @@ const Page = () => {
   const guests = useMemo(
     () =>
       guestData.data?.pages?.flatMap((page) =>
-        Array.isArray(page) ? page : []
+        // Cached reads page as { Results, Metadata }; live reads stay a bare array.
+        Array.isArray(page) ? page : Array.isArray(page?.Results) ? page.Results : []
       ) ?? [],
     [guestData.data]
   )
@@ -222,12 +224,16 @@ const Page = () => {
         tableFilter={tableFilter}
         title={pageTitle}
         apiUrl={reportDB.resolvedApiUrl}
+        apiData={reportDB.resolvedApiData}
+        apiDataKey={reportDB.apiDataKey}
         queryKey={reportDB.resolvedQueryKey}
         dataSourceControls={reportDB.controls}
         actions={actions}
         offCanvas={offCanvas}
         simpleColumns={simpleColumns}
         filters={filterList}
+        // Paged cache reads arrive in table walk order, not sorted like the unpaged report.
+        defaultSorting={[{ id: 'displayName', desc: false }]}
       />
       {reportDB.syncDialog}
     </>
