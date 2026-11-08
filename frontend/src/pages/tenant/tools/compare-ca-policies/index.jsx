@@ -59,6 +59,7 @@ const SourceSelector = ({ prefix, formControl, label }) => {
               formControl={formControl}
               multiple={false}
               creatable={false}
+              sortOptions={true}
               api={{
                 url: '/api/ListCATemplates',
                 queryKey: `ListCATemplates-${prefix}`,
@@ -94,6 +95,7 @@ const SourceSelector = ({ prefix, formControl, label }) => {
                 multiple={false}
                 creatable={false}
                 isFetching={!tenantValue}
+                sortOptions={true}
                 api={
                   tenantValue
                     ? {
