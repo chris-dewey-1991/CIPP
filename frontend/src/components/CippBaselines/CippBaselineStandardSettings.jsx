@@ -1,6 +1,6 @@
-import { useEffect } from 'react'
+import { Fragment, useEffect } from 'react'
 import { CippIcons } from '../../utils/icon-registry'
-import { Stack, Typography } from '@mui/material'
+import { Divider, Stack, Typography } from '@mui/material'
 import { Grid } from '@mui/system'
 import CippFormComponent from '../CippComponents/CippFormComponent'
 import { CippFormCondition } from '../CippComponents/CippFormCondition'
@@ -137,9 +137,21 @@ export const CippBaselineStandardSettings = ({
 
   return (
     <Grid container spacing={2}>
-      {variableEntries.map(([key, definition]) => {
+      {variableEntries.map(([key, definition], index) => {
+        // A definition may group its variables under headings with `section`. The heading
+        // is drawn where the section changes, so sections follow the declared order.
+        const previousSection = variableEntries[index - 1]?.[1]?.section
+        const heading =
+          definition.section && definition.section !== previousSection ? (
+            <Grid size={12} sx={{ mt: index === 0 ? 0 : 1 }}>
+              <Typography variant="subtitle2" sx={{ color: 'text.secondary', mb: 0.5 }}>
+                {definition.section}
+              </Typography>
+              <Divider />
+            </Grid>
+          ) : null
         const field = (
-          <Grid key={key} size={{ xs: 12, md: 6 }}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <CippFormComponent
               type={definition.type}
               name={`${namePrefix}.${key}`}
@@ -182,9 +194,8 @@ export const CippBaselineStandardSettings = ({
         )
         // Hidden values are kept unless the definition opts into clearOnHide: the
         // baseline logic, not the editor, decides what a dependent value means.
-        return definition.condition ? (
+        const content = definition.condition ? (
           <CippFormCondition
-            key={key}
             {...definition.condition}
             field={`${namePrefix}.${definition.condition.field}`}
             formControl={formControl}
@@ -195,6 +206,12 @@ export const CippBaselineStandardSettings = ({
           </CippFormCondition>
         ) : (
           field
+        )
+        return (
+          <Fragment key={key}>
+            {heading}
+            {content}
+          </Fragment>
         )
       })}
     </Grid>

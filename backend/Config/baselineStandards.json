@@ -6981,12 +6981,14 @@
         "name": "standards.GlobalSecureAccessCompliantNetwork.deployWindows",
         "type": "switch",
         "label": "Deploy the client to Windows",
+        "section": "Client deployment",
         "default": true
       },
       {
         "name": "standards.GlobalSecureAccessCompliantNetwork.deployMacOS",
         "type": "switch",
         "label": "Deploy the client to macOS",
+        "section": "Client deployment",
         "default": true
       },
       {
@@ -6994,6 +6996,7 @@
         "type": "autoComplete",
         "creatable": false,
         "label": "Which devices get the client?",
+        "section": "Client deployment",
         "default": "AllDevices",
         "options": [
           {
@@ -7017,37 +7020,45 @@
       {
         "name": "standards.GlobalSecureAccessCompliantNetwork.customGroup",
         "type": "textField",
-        "label": "Custom group name (when 'A custom group' is selected, wildcards allowed)",
-        "omitWhenBlank": true
+        "label": "Custom group name",
+        "section": "Client deployment",
+        "omitWhenBlank": true,
+        "helperText": "Used when 'A custom group (pilot)' is selected. Wildcards allowed."
       },
       {
         "name": "standards.GlobalSecureAccessCompliantNetwork.excludeGroup",
         "type": "textField",
-        "label": "Group name(s) to exclude from the client, comma separated (wildcards allowed)",
-        "omitWhenBlank": true
+        "label": "Groups to exclude from the client",
+        "section": "Client deployment",
+        "omitWhenBlank": true,
+        "helperText": "Group names, comma separated. Wildcards allowed."
       },
       {
         "name": "standards.GlobalSecureAccessCompliantNetwork.preferIPv4",
         "type": "switch",
         "label": "Windows: prefer IPv4 over IPv6 (Microsoft's recommendation; the client tunnels IPv4 only; needs a restart)",
+        "section": "Client settings",
         "default": true
       },
       {
         "name": "standards.GlobalSecureAccessCompliantNetwork.lockDownClient",
         "type": "switch",
         "label": "Lock down the client (hide Disable, Pause, Sign out and Disable Private Access; Windows also requires admin rights to disable)",
+        "section": "Client settings",
         "default": true
       },
       {
         "name": "standards.GlobalSecureAccessCompliantNetwork.createPolicy",
         "type": "switch",
         "label": "Create the Conditional Access policy (off = set up Global Secure Access and the client only, and manage the policy yourself)",
+        "section": "Conditional Access policy",
         "default": true
       },
       {
         "name": "standards.GlobalSecureAccessCompliantNetwork.enforce",
         "type": "switch",
         "label": "Enforce the policy (off = report-only mode)",
+        "section": "Conditional Access policy",
         "default": false,
         "recommended": true,
         "condition": {
@@ -7059,19 +7070,22 @@
       {
         "name": "standards.GlobalSecureAccessCompliantNetwork.policyName",
         "type": "textField",
-        "label": "Name of the Conditional Access policy (changing it after deployment creates a new policy; Detect Conditional Access Drift then lists the old one for removal)",
+        "label": "Conditional Access policy name",
+        "section": "Conditional Access policy",
         "default": "CIPP: Require compliant network (Global Secure Access)",
         "condition": {
           "field": "createPolicy",
           "compareType": "is",
           "compareValue": true
-        }
+        },
+        "helperText": "Changing it after deployment creates a new policy; Detect Conditional Access Drift then lists the old one for removal."
       },
       {
         "name": "standards.GlobalSecureAccessCompliantNetwork.excludeAdminRoles",
         "type": "AdminRolesMultiSelect",
         "multiple": true,
         "label": "Admin roles to exclude from the policy",
+        "section": "Conditional Access policy",
         "default": [
           "62e90394-69f5-4237-9190-012177145e10",
           "194ae4cb-b126-40b2-bd5b-6091b380977d",
@@ -7090,6 +7104,7 @@
         "multiple": true,
         "creatable": true,
         "label": "Break-glass accounts to exclude (user principal names or display names)",
+        "section": "Conditional Access policy",
         "omitWhenBlank": true,
         "condition": {
           "field": "createPolicy",
@@ -7103,6 +7118,7 @@
         "multiple": true,
         "creatable": true,
         "label": "Groups to exclude from the policy (display names)",
+        "section": "Conditional Access policy",
         "omitWhenBlank": true,
         "condition": {
           "field": "createPolicy",
@@ -7114,6 +7130,7 @@
         "name": "standards.GlobalSecureAccessCompliantNetwork.useDetectedBreakGlass",
         "type": "switch",
         "label": "Also exclude the break-glass account CIPP detects from your existing policies",
+        "section": "Conditional Access policy",
         "default": true,
         "condition": {
           "field": "createPolicy",
