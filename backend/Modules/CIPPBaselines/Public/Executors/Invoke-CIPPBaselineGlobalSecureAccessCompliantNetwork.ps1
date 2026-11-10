@@ -16,6 +16,7 @@ function Invoke-CIPPBaselineGlobalSecureAccessCompliantNetwork {
     $PreferIPv4 = $Remediate.preferIPv4 -ne $false
     $LockDown = [int]($Remediate.lockDownClient -ne $false)
     $Enforce = $Remediate.enforce -eq $true
+    $CreatePolicy = $Remediate.createPolicy -ne $false
     # Same resolution as the prepare hook: operator-chosen name, default for baselines saved before the variable existed.
     $PolicyName = "$($Remediate.policyName)"
     if (-not $PolicyName) { $PolicyName = 'CIPP: Require compliant network (Global Secure Access)' }
@@ -286,8 +287,9 @@ exit 0
         }
     }
 
-    # --- Conditional Access policy, written only when the hook saw drift on it
-    if ($Current.policyDrift -ne $false) {
+    # --- Conditional Access policy, written only when the hook saw drift on it. With createPolicy
+    # off the policy is the operator's own: nothing is created and an existing one is left alone.
+    if ($CreatePolicy -and $Current.policyDrift -ne $false) {
         $ExcludeUsers = [System.Collections.Generic.List[string]]::new()
         $ExcludeGroups = [System.Collections.Generic.List[string]]::new()
         if ($UserRefs.Count -gt 0) {

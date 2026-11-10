@@ -2,7 +2,8 @@ function Get-CIPPBaselineGlobalSecureAccessCompliantNetworkState {
     <#
     .SYNOPSIS
         Prepare hook for GlobalSecureAccessCompliantNetwork: grades the tenant setup, the
-        client deployment and the Conditional Access policy as flat booleans.
+        client deployment and (unless createPolicy is off) the Conditional Access policy as
+        flat booleans.
     .FUNCTIONALITY
         Internal
     #>
@@ -14,6 +15,7 @@ function Get-CIPPBaselineGlobalSecureAccessCompliantNetworkState {
     $DeployWindows = $V.deployWindows -ne $false
     $DeployMacOS = $V.deployMacOS -ne $false
     $Enforce = $V.enforce -eq $true
+    $CreatePolicy = $V.createPolicy -ne $false
     # The policy name is operator-chosen (issue #1173); baselines saved before the variable existed carry none.
     $PolicyName = "$($V.policyName)"
     if (-not $PolicyName) { $PolicyName = 'CIPP: Require compliant network (Global Secure Access)' }
@@ -66,23 +68,26 @@ function Get-CIPPBaselineGlobalSecureAccessCompliantNetworkState {
         $Current.macOSClientSettingsProfileDeployed = @($Configs | Where-Object { $_.displayName -eq 'Global Secure Access - macOS Client Settings' }).Count -gt 0
     }
 
-    $Policies = @(Get-CIPPBaselineCacheRows -TenantFilter $TenantFilter -Type 'ConditionalAccessPolicies')
-    $Policy = @($Policies | Where-Object { $_.displayName -eq $PolicyName }) | Select-Object -First 1
-    $Expected.policyPresent = $true
-    $Current.policyPresent = $null -ne $Policy
-    $Expected.policyState = if ($Enforce) { 'enabled' } else { 'enabledForReportingButNotEnforced' }
-    $Current.policyState = "$($Policy.state)"
-    $LiveRoles = @($Policy.conditions.users.excludeRoles)
-    $Expected.policyExcludedRoles = $RoleIds -join ','
-    $Current.policyExcludedRoles = @($RoleIds | Where-Object { $LiveRoles -contains $_ }) -join ','
-    if ($UserRefs.Count -gt 0 -or $GroupRefs.Count -gt 0) {
-        $Users = if ($UserRefs.Count -gt 0) { @(Get-CIPPBaselineCacheRows -TenantFilter $TenantFilter -Type 'Users') } else { @() }
-        $Groups = if ($GroupRefs.Count -gt 0) { @(Get-CIPPBaselineCacheRows -TenantFilter $TenantFilter -Type 'Groups') } else { @() }
-        $ExcludedIds = @($Policy.conditions.users.excludeUsers) + @($Policy.conditions.users.excludeGroups)
-        $Resolved = @($UserRefs | ForEach-Object { $Ref = $_; ($Users | Where-Object { $_.userPrincipalName -eq $Ref -or $_.displayName -eq $Ref -or $_.id -eq $Ref } | Select-Object -First 1).id }) +
-        @($GroupRefs | ForEach-Object { $Ref = $_; ($Groups | Where-Object { $_.displayName -eq $Ref -or $_.id -eq $Ref } | Select-Object -First 1).id })
-        $Expected.policyExclusionsPresent = $true
-        $Current.policyExclusionsPresent = @($Resolved | Where-Object { -not $_ -or $ExcludedIds -notcontains $_ }).Count -eq 0
+    # With createPolicy off the policy is the operator's own: not graded here, never written by the executor.
+    if ($CreatePolicy) {
+        $Policies = @(Get-CIPPBaselineCacheRows -TenantFilter $TenantFilter -Type 'ConditionalAccessPolicies')
+        $Policy = @($Policies | Where-Object { $_.displayName -eq $PolicyName }) | Select-Object -First 1
+        $Expected.policyPresent = $true
+        $Current.policyPresent = $null -ne $Policy
+        $Expected.policyState = if ($Enforce) { 'enabled' } else { 'enabledForReportingButNotEnforced' }
+        $Current.policyState = "$($Policy.state)"
+        $LiveRoles = @($Policy.conditions.users.excludeRoles)
+        $Expected.policyExcludedRoles = $RoleIds -join ','
+        $Current.policyExcludedRoles = @($RoleIds | Where-Object { $LiveRoles -contains $_ }) -join ','
+        if ($UserRefs.Count -gt 0 -or $GroupRefs.Count -gt 0) {
+            $Users = if ($UserRefs.Count -gt 0) { @(Get-CIPPBaselineCacheRows -TenantFilter $TenantFilter -Type 'Users') } else { @() }
+            $Groups = if ($GroupRefs.Count -gt 0) { @(Get-CIPPBaselineCacheRows -TenantFilter $TenantFilter -Type 'Groups') } else { @() }
+            $ExcludedIds = @($Policy.conditions.users.excludeUsers) + @($Policy.conditions.users.excludeGroups)
+            $Resolved = @($UserRefs | ForEach-Object { $Ref = $_; ($Users | Where-Object { $_.userPrincipalName -eq $Ref -or $_.displayName -eq $Ref -or $_.id -eq $Ref } | Select-Object -First 1).id }) +
+            @($GroupRefs | ForEach-Object { $Ref = $_; ($Groups | Where-Object { $_.displayName -eq $Ref -or $_.id -eq $Ref } | Select-Object -First 1).id })
+            $Expected.policyExclusionsPresent = $true
+            $Current.policyExclusionsPresent = @($Resolved | Where-Object { -not $_ -or $ExcludedIds -notcontains $_ }).Count -eq 0
+        }
     }
 
     $CurrentObject = [PSCustomObject]$Current

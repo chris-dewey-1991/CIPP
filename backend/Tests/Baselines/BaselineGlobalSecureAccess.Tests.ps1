@@ -98,6 +98,22 @@ Describe 'Get-CIPPBaselineGlobalSecureAccessCompliantNetworkState' {
         $P.Current.policyPresent | Should -BeFalse
     }
 
+    It 'does not grade the policy when createPolicy is off' {
+        Mock New-CIPPDbRequest {
+            switch ($Type) {
+                'NetworkAccess' { @($script:TenantRow | ConvertTo-Cached) }
+                'NamedLocations' { @($script:Location | ConvertTo-Cached) }
+                'IntuneMobileApps' { @(@{ displayName = 'Global Secure Access Client (Windows)' } | ConvertTo-Cached) }
+                default { @() }
+            }
+        }
+        $Variables = [PSCustomObject]@{ deployMacOS = $false; createPolicy = $false; enforce = $true }
+        $P = Get-CIPPBaselineGlobalSecureAccessCompliantNetworkState -Item ([PSCustomObject]@{ Variables = $Variables }) -TenantFilter $script:Tenant
+        @($P.Expected.PSObject.Properties.Name | Where-Object { $_ -like 'policy*' }).Count | Should -Be 0
+        $P.Current.policyDrift | Should -BeFalse
+        (Get-Verdict -Expected $P.Expected -Current $P.Current).Count | Should -Be 0
+    }
+
     It 'returns No Data when the NetworkAccess cache was never collected' {
         Mock New-CIPPDbRequest { @() }
         (Get-CIPPBaselineGlobalSecureAccessCompliantNetworkState -Item ([PSCustomObject]@{ Variables = [PSCustomObject]@{} }) -TenantFilter $script:Tenant).Current | Should -BeNullOrEmpty
@@ -215,6 +231,15 @@ Describe 'Invoke-CIPPBaselineGlobalSecureAccessCompliantNetwork' {
         @($script:Json.conditions.applications.excludeApplications) | Should -Contain '0000000a-0000-0000-c000-000000000000'
         $script:Json.conditions.locations.includeLocations | Should -Be @('All')
         $script:Json.conditions.locations.excludeLocations | Should -Be @('loc-cn')
+    }
+
+    It 'leaves Conditional Access alone when createPolicy is off, even with enforce on and no break-glass' {
+        $script:LivePolicies = @([PSCustomObject]@{ id = 'ca-own'; displayName = $script:PolicyName; state = 'enabled' })
+        $Remediate = [PSCustomObject]@{ deployMacOS = $false; createPolicy = $false; enforce = $true; useDetectedBreakGlass = $false }
+        { Invoke-CIPPBaselineGlobalSecureAccessCompliantNetwork -Remediate $Remediate -TenantFilter $script:Tenant -Current $null } | Should -Not -Throw
+        Should -Invoke New-CIPPCAPolicy -Times 0 -Exactly
+        Should -Invoke New-GraphPostRequest -Times 0 -Exactly -ParameterFilter { $uri -like '*conditionalAccess/policies*' }
+        Should -Invoke Add-CIPPW32ScriptApplication -Times 1 -Exactly
     }
 
     It 'refreshes exactly the caches it wrote to, so the next compare does not flap on stale copies' {
