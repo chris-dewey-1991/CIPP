@@ -6,8 +6,8 @@ function Get-CIPPBaselineAuthenticationMethodsState {
     .DESCRIPTION
         The classic's ten-method matrix, ported whole. Only methods the operator configured
         grade at all; each graded method contributes its drifts - state, include-target
-        set (one or more comma-separated group names resolved from the Groups cache, or
-        all_users), the exclude set (same comma-separated form), and the
+        set (comma-separated group names resolved from the Groups cache, or all_users),
+        the exclude set, and the
         method-specific extras: Microsoft Authenticator's software OATH flag and three
         feature states, Temporary Access Pass's five numbers, QR code's two, and Email
         OTP's external-id flag and exclude targets.
@@ -17,7 +17,7 @@ function Get-CIPPBaselineAuthenticationMethodsState {
         Set-CIPPAuthenticationPolicy parameter set per drifted method - is carried, built
         here because it depends on the same group resolution the grade used.
 
-        A configured group name that resolves to nothing (any one name in a comma list) skips that method's targeting
+        A configured group name that resolves to nothing skips that method's targeting
         grade exactly as the classic skipped it, and its remediation leaves the include
         and exclude targets as they are - half-resolved targeting must not drive a write.
     .FUNCTIONALITY
@@ -77,10 +77,7 @@ function Get-CIPPBaselineAuthenticationMethodsState {
         $GroupIdCache[$Name] = $(if ($Ids.Count -gt 0) { $Ids } else { $null })
         $GroupIdCache[$Name]
     }
-    # A target or exclude field may name several groups, comma-separated (the same
-    # convention NudgeMFA's include/exclude fields use). Every name must resolve; one
-    # that does not makes the whole field unresolved, so a half-resolved list never
-    # grades or drives a write.
+    # Comma-separated group names. If any name is missing, return $null so the field is skipped.
     $ResolveGroupList = {
         param($Raw)
         $Names = @("$Raw" -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ })
@@ -89,7 +86,7 @@ function Get-CIPPBaselineAuthenticationMethodsState {
         foreach ($Name in $Names) {
             $Ids = & $ResolveGroup $Name
             if (-not $Ids) {
-                Write-LogMessage -API 'Baselines' -tenant $TenantFilter -message "Authentication methods: group '$Name' was not found, so that targeting field was left as it is." -Sev 'Warning'
+                Write-LogMessage -API 'Baselines' -tenant $TenantFilter -message "Authentication methods: group '$Name' not found, targeting not changed." -Sev 'Warning'
                 return $null
             }
             foreach ($Id in @($Ids)) { if ($Id -notin $AllIds) { $AllIds.Add($Id) } }

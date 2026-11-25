@@ -141,8 +141,6 @@ Describe 'Get-CIPPBaselineAuthenticationMethodsState' {
     }
 
     It 'excludes several comma-separated groups from one method' {
-        # The field used to be matched as one whole name, so 'A,B' resolved to nothing and
-        # the exclusion was silently skipped. Each name now resolves and all are excluded.
         Mock New-CIPPDbRequest {
             if ($Type -eq 'AuthenticationMethodsPolicy') { @($script:AuthPolicy | ConvertTo-Cached) } else {
                 @(@{ id = 'g-legacy'; displayName = 'AllowedToUseLegacyMFAGroup' }, @{ id = 'g-ucp'; displayName = 'M365UCP | Break Glass' } | ConvertTo-Cached)
@@ -154,7 +152,7 @@ Describe 'Get-CIPPBaselineAuthenticationMethodsState' {
         @($Prepared.Current.remediationSets[0].Params.ExcludeGroupIds | Sort-Object) | Should -Be @('g-legacy', 'g-ucp')
     }
 
-    It 'treats several excluded groups as compliant whatever order the tenant holds them in' {
+    It 'is compliant when the tenant holds the excluded groups in a different order' {
         $Policy = @{ authenticationMethodConfigurations = @(
                 @{ id = 'Sms'; state = 'enabled'; includeTargets = @(@{ id = 'all_users'; targetType = 'group' }); excludeTargets = @(@{ id = 'g-b'; targetType = 'group' }, @{ id = 'g-a'; targetType = 'group' }) }
             ) }
@@ -166,7 +164,7 @@ Describe 'Get-CIPPBaselineAuthenticationMethodsState' {
         @($Prepared.Current.methodsOutOfPolicy).Count | Should -Be 0
     }
 
-    It 'leaves the exclusions alone when any one of several names does not resolve' {
+    It 'skips the exclusions when one of the names does not resolve' {
         Mock New-CIPPDbRequest {
             if ($Type -eq 'AuthenticationMethodsPolicy') { @($script:AuthPolicy | ConvertTo-Cached) } else { @(@{ id = 'g-a'; displayName = 'Alpha' } | ConvertTo-Cached) }
         }
@@ -176,7 +174,7 @@ Describe 'Get-CIPPBaselineAuthenticationMethodsState' {
         @($Prepared.Current.remediationSets).Count | Should -Be 0
     }
 
-    It 'ignores a stray trailing comma in a target group field' {
+    It 'ignores a trailing comma in a target group field' {
         $Policy = @{ authenticationMethodConfigurations = @(
                 @{ id = 'Sms'; state = 'enabled'; includeTargets = @(@{ id = 'g-a'; targetType = 'group' }) }
             ) }
