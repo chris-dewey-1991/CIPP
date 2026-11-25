@@ -70,28 +70,27 @@ function Get-CIPPBaselineAuthenticationMethodsState {
     $NeedsGroups = @($Configured | Where-Object { $_.Enabled -and (-not [string]::IsNullOrWhiteSpace($_.GroupName) -or -not [string]::IsNullOrWhiteSpace($_.ExcludeGroupName)) }).Count -gt 0
     if ($NeedsGroups) { $Groups = @(Get-CIPPBaselineCacheRows -TenantFilter $TenantFilter -Type 'Groups') }
     $GroupIdCache = @{}
+    # A field may hold several comma-separated group names. A name with no match leaves the whole field unresolved.
     $ResolveGroup = {
-        param($Name)
-        if ($GroupIdCache.ContainsKey($Name)) { return $GroupIdCache[$Name] }
-        $Ids = @($Groups | Where-Object { "$($_.displayName)".StartsWith($Name) } | ForEach-Object { "$($_.id)" })
-        $GroupIdCache[$Name] = $(if ($Ids.Count -gt 0) { $Ids } else { $null })
-        $GroupIdCache[$Name]
-    }
-    # Comma-separated group names. If any name is missing, return $null so the field is skipped.
-    $ResolveGroupList = {
         param($Raw)
-        $Names = @("$Raw" -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ })
-        if ($Names.Count -eq 0) { return $null }
         $AllIds = [System.Collections.Generic.List[string]]::new()
-        foreach ($Name in $Names) {
-            $Ids = & $ResolveGroup $Name
-            if (-not $Ids) {
-                Write-LogMessage -API 'Baselines' -tenant $TenantFilter -message "Authentication methods: group '$Name' not found, targeting not changed." -Sev 'Warning'
-                return $null
+        foreach ($Part in "$Raw".Split(',')) {
+            $Name = $Part.Trim()
+            if (-not $Name) { continue }
+            if (-not $GroupIdCache.ContainsKey($Name)) {
+                $Ids = [System.Collections.Generic.List[string]]::new()
+                foreach ($Group in $Groups) {
+                    if ("$($Group.displayName)".StartsWith($Name)) { $Ids.Add("$($Group.id)") }
+                }
+                $GroupIdCache[$Name] = $Ids
             }
-            foreach ($Id in @($Ids)) { if ($Id -notin $AllIds) { $AllIds.Add($Id) } }
+            if ($GroupIdCache[$Name].Count -eq 0) { return $null }
+            foreach ($Id in $GroupIdCache[$Name]) {
+                if (-not $AllIds.Contains($Id)) { $AllIds.Add($Id) }
+            }
         }
-        , @($AllIds)
+        if ($AllIds.Count -eq 0) { return $null }
+        , $AllIds.ToArray()
     }
 
     $AllDrifts = [System.Collections.Generic.List[string]]::new()
@@ -106,7 +105,7 @@ function Get-CIPPBaselineAuthenticationMethodsState {
         $CurrentTargetIds = @($Config.includeTargets | ForEach-Object { "$($_.id)" })
         $ResolvedGroupIds = $null
         if ($Method.Enabled -and -not [string]::IsNullOrWhiteSpace($Method.GroupName)) {
-            $ResolvedGroupIds = & $ResolveGroupList $Method.GroupName
+            $ResolvedGroupIds = & $ResolveGroup $Method.GroupName
             if ($ResolvedGroupIds) {
                 $Diff = Compare-Object -ReferenceObject @($ResolvedGroupIds | Sort-Object) -DifferenceObject @($CurrentTargetIds | Sort-Object) -ErrorAction SilentlyContinue
                 if ($Diff) { $Drifts.Add("$($Method.Label): targeting [$($CurrentTargetIds -join ', ')] should be [$($ResolvedGroupIds -join ', ')]") }
@@ -122,7 +121,7 @@ function Get-CIPPBaselineAuthenticationMethodsState {
             $Params['GroupIds'] = @('all_users')
         }
         if ($Method.Enabled -and -not [string]::IsNullOrWhiteSpace($Method.ExcludeGroupName)) {
-            $ExcludeIds = & $ResolveGroupList $Method.ExcludeGroupName
+            $ExcludeIds = & $ResolveGroup $Method.ExcludeGroupName
             if ($ExcludeIds) {
                 $CurrentExcludeIds = @($Config.excludeTargets | ForEach-Object { "$($_.id)" })
                 $Diff = Compare-Object -ReferenceObject @($ExcludeIds | Sort-Object) -DifferenceObject @($CurrentExcludeIds | Sort-Object) -ErrorAction SilentlyContinue
