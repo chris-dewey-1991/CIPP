@@ -6,8 +6,7 @@ function Get-CIPPBaselineAuthenticationMethodsState {
     .DESCRIPTION
         The classic's ten-method matrix, ported whole. Only methods the operator configured
         grade at all; each graded method contributes its drifts - state, include-target
-        set (comma-separated group names resolved from the Groups cache, or all_users),
-        the exclude set, and the
+        set (comma-separated group names resolved from the Groups cache, or all_users), and the
         method-specific extras: Microsoft Authenticator's software OATH flag and three
         feature states, Temporary Access Pass's five numbers, QR code's two, and Email
         OTP's external-id flag and exclude targets.
@@ -75,7 +74,7 @@ function Get-CIPPBaselineAuthenticationMethodsState {
     $NeedsGroups = @($Configured.Where({ $_.Enabled -and (-not [string]::IsNullOrWhiteSpace($_.GroupName) -or -not [string]::IsNullOrWhiteSpace($_.ExcludeGroupName)) })).Count -gt 0
     if ($NeedsGroups) { $Groups = @(Get-CIPPBaselineCacheRows -TenantFilter $TenantFilter -Type 'Groups' -Fields 'displayName', 'Id') }
     $GroupIdCache = @{}
-    # A field may hold several comma-separated group names. A name with no match leaves the whole field unresolved.
+    # Any unmatched name leaves the whole field unresolved.
     $ResolveGroup = {
         param($Raw)
         $AllIds = [System.Collections.Generic.List[string]]::new()
