@@ -164,32 +164,32 @@ Describe 'Get-CIPPBaselineAuthenticationMethodsState' {
     It 'excludes several comma-separated groups from one method' {
         Mock New-CIPPDbRequest {
             if ($Type -eq 'AuthenticationMethodsPolicy') { @($script:AuthPolicy | ConvertTo-Cached) } else {
-                @(@{ id = 'g-one'; displayName = 'MFA Exclusions' }, @{ id = 'g-two'; displayName = 'Admins | Break Glass' } | ConvertTo-Cached)
+                @(@{ id = 'g-admins'; displayName = 'Admins' }, @{ id = 'g-pilot'; displayName = 'CIPPTestPilot' } | ConvertTo-Cached)
             }
         }
-        $Item = [PSCustomObject]@{ Variables = [PSCustomObject]@{ MicrosoftAuthenticatorEnabled = $true; MicrosoftAuthenticatorExcludeGroup = 'MFA Exclusions, Admins | Break Glass' } }
+        $Item = [PSCustomObject]@{ Variables = [PSCustomObject]@{ MicrosoftAuthenticatorEnabled = $true; MicrosoftAuthenticatorExcludeGroup = 'Admins, CIPPTestPilot' } }
         $Prepared = Get-CIPPBaselineAuthenticationMethodsState -Item $Item -TenantFilter $script:Tenant
         $Prepared.Current.methodsOutOfPolicy | Should -Match 'Microsoft Authenticator: excludeTargets'
-        @($Prepared.Current.remediationSets[0].Params.ExcludeGroupIds | Sort-Object) | Should -Be @('g-one', 'g-two')
+        @($Prepared.Current.remediationSets[0].Params.ExcludeGroupIds | Sort-Object) | Should -Be @('g-admins', 'g-pilot')
     }
 
     It 'is compliant when the tenant holds the excluded groups in a different order' {
         $Policy = @{ authenticationMethodConfigurations = @(
-                @{ id = 'Sms'; state = 'enabled'; includeTargets = @(@{ id = 'all_users'; targetType = 'group' }); excludeTargets = @(@{ id = 'g-b'; targetType = 'group' }, @{ id = 'g-a'; targetType = 'group' }) }
+                @{ id = 'Sms'; state = 'enabled'; includeTargets = @(@{ id = 'all_users'; targetType = 'group' }); excludeTargets = @(@{ id = 'g-pilot'; targetType = 'group' }, @{ id = 'g-admins'; targetType = 'group' }) }
             ) }
         Mock New-CIPPDbRequest {
-            if ($Type -eq 'AuthenticationMethodsPolicy') { @($Policy | ConvertTo-Cached) } else { @(@{ id = 'g-a'; displayName = 'Alpha' }, @{ id = 'g-b'; displayName = 'Bravo' } | ConvertTo-Cached) }
+            if ($Type -eq 'AuthenticationMethodsPolicy') { @($Policy | ConvertTo-Cached) } else { @(@{ id = 'g-admins'; displayName = 'Admins' }, @{ id = 'g-pilot'; displayName = 'CIPPTestPilot' } | ConvertTo-Cached) }
         }
-        $Item = [PSCustomObject]@{ Variables = [PSCustomObject]@{ SMSEnabled = $true; SMSExcludeGroup = 'Alpha,Bravo' } }
+        $Item = [PSCustomObject]@{ Variables = [PSCustomObject]@{ SMSEnabled = $true; SMSExcludeGroup = 'Admins,CIPPTestPilot' } }
         $Prepared = Get-CIPPBaselineAuthenticationMethodsState -Item $Item -TenantFilter $script:Tenant
         @($Prepared.Current.methodsOutOfPolicy).Count | Should -Be 0
     }
 
     It 'skips the exclusions when one of the names does not resolve' {
         Mock New-CIPPDbRequest {
-            if ($Type -eq 'AuthenticationMethodsPolicy') { @($script:AuthPolicy | ConvertTo-Cached) } else { @(@{ id = 'g-a'; displayName = 'Alpha' } | ConvertTo-Cached) }
+            if ($Type -eq 'AuthenticationMethodsPolicy') { @($script:AuthPolicy | ConvertTo-Cached) } else { @(@{ id = 'g-admins'; displayName = 'Admins' } | ConvertTo-Cached) }
         }
-        $Item = [PSCustomObject]@{ Variables = [PSCustomObject]@{ SMSEnabled = $true; SMSExcludeGroup = 'Alpha,Missing' } }
+        $Item = [PSCustomObject]@{ Variables = [PSCustomObject]@{ SMSEnabled = $true; SMSExcludeGroup = 'Admins,CIPPTestMissing' } }
         $Prepared = Get-CIPPBaselineAuthenticationMethodsState -Item $Item -TenantFilter $script:Tenant
         $Prepared.Current.methodsOutOfPolicy | Should -Not -Match 'excludeTargets'
         @($Prepared.Current.remediationSets).Count | Should -Be 0
@@ -197,12 +197,12 @@ Describe 'Get-CIPPBaselineAuthenticationMethodsState' {
 
     It 'ignores a trailing comma in a target group field' {
         $Policy = @{ authenticationMethodConfigurations = @(
-                @{ id = 'Sms'; state = 'enabled'; includeTargets = @(@{ id = 'g-a'; targetType = 'group' }) }
+                @{ id = 'Sms'; state = 'enabled'; includeTargets = @(@{ id = 'g-admins'; targetType = 'group' }) }
             ) }
         Mock New-CIPPDbRequest {
-            if ($Type -eq 'AuthenticationMethodsPolicy') { @($Policy | ConvertTo-Cached) } else { @(@{ id = 'g-a'; displayName = 'Alpha' } | ConvertTo-Cached) }
+            if ($Type -eq 'AuthenticationMethodsPolicy') { @($Policy | ConvertTo-Cached) } else { @(@{ id = 'g-admins'; displayName = 'Admins' } | ConvertTo-Cached) }
         }
-        $Item = [PSCustomObject]@{ Variables = [PSCustomObject]@{ SMSEnabled = $true; SMSGroup = 'Alpha,' } }
+        $Item = [PSCustomObject]@{ Variables = [PSCustomObject]@{ SMSEnabled = $true; SMSGroup = 'Admins,' } }
         $Prepared = Get-CIPPBaselineAuthenticationMethodsState -Item $Item -TenantFilter $script:Tenant
         @($Prepared.Current.methodsOutOfPolicy).Count | Should -Be 0
     }
