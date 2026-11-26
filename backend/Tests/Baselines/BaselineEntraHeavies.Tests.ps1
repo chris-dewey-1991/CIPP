@@ -164,13 +164,13 @@ Describe 'Get-CIPPBaselineAuthenticationMethodsState' {
     It 'excludes several comma-separated groups from one method' {
         Mock New-CIPPDbRequest {
             if ($Type -eq 'AuthenticationMethodsPolicy') { @($script:AuthPolicy | ConvertTo-Cached) } else {
-                @(@{ id = 'g-legacy'; displayName = 'AllowedToUseLegacyMFAGroup' }, @{ id = 'g-ucp'; displayName = 'M365UCP | Break Glass' } | ConvertTo-Cached)
+                @(@{ id = 'g-one'; displayName = 'MFA Exclusions' }, @{ id = 'g-two'; displayName = 'Admins | Break Glass' } | ConvertTo-Cached)
             }
         }
-        $Item = [PSCustomObject]@{ Variables = [PSCustomObject]@{ MicrosoftAuthenticatorEnabled = $true; MicrosoftAuthenticatorExcludeGroup = 'AllowedToUseLegacyMFAGroup, M365UCP | Break Glass' } }
+        $Item = [PSCustomObject]@{ Variables = [PSCustomObject]@{ MicrosoftAuthenticatorEnabled = $true; MicrosoftAuthenticatorExcludeGroup = 'MFA Exclusions, Admins | Break Glass' } }
         $Prepared = Get-CIPPBaselineAuthenticationMethodsState -Item $Item -TenantFilter $script:Tenant
         $Prepared.Current.methodsOutOfPolicy | Should -Match 'Microsoft Authenticator: excludeTargets'
-        @($Prepared.Current.remediationSets[0].Params.ExcludeGroupIds | Sort-Object) | Should -Be @('g-legacy', 'g-ucp')
+        @($Prepared.Current.remediationSets[0].Params.ExcludeGroupIds | Sort-Object) | Should -Be @('g-one', 'g-two')
     }
 
     It 'is compliant when the tenant holds the excluded groups in a different order' {
