@@ -15,6 +15,11 @@
     "icon": "RestoreFromTrash"
   },
   {
+    "label": "Custom Apps",
+    "path": "/tenant/administration/applications/custom-apps",
+    "icon": "Widgets"
+  },
+  {
     "label": "Permission Sets",
     "path": "/tenant/administration/applications/permission-sets",
     "icon": "Key"
@@ -23,5 +28,10 @@
     "label": "Application Templates",
     "path": "/tenant/administration/applications/templates",
     "icon": "Description"
+  },
+  {
+    "label": "Custom App Templates",
+    "path": "/tenant/administration/applications/custom-app-templates",
+    "icon": "Upload"
   }
 ]

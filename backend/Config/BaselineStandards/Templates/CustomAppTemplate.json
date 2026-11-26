@@ -1,0 +1,55 @@
+{
+  "name": "CustomAppTemplate",
+  "label": "Custom App Template",
+  "cat": "Templates",
+  "tag": [],
+  "impact": "Low Impact",
+  "helpText": "Publishes a custom app package (.zip) from a CIPP custom app template to the tenant's Teams and Microsoft 365 app catalog, and updates it when the template holds a newer version. Who can use or gets the app is still set by Teams app policies.",
+  "executiveText": "Keeps the organisation's own line-of-business apps published and on the current version in every managed tenant's app catalog, so staff can find and use them in Teams, Outlook and Microsoft 365.",
+  "docsDescription": "Grades whether the template's app (matched by its manifest id) is in the tenant's organisation app catalog at the template's version or newer, from the CustomApps cache. Remediation publishes the package when the app is missing and adds the template's version when the tenant is on an older one; a newer version in the tenant is left alone. Publishing needs the AppCatalog.ReadWrite.All delegated permission and the Teams Administrator role in the GDAP relationship.",
+  "impactColour": "info",
+  "addedDate": "2026-11-26",
+  "powershellEquivalent": "Graph API - POST /appCatalogs/teamsApps and /appCatalogs/teamsApps/{id}/appDefinitions",
+  "recommendedBy": [],
+  "requiredCapabilities": [
+    "MCOSTANDARD",
+    "MCOEV",
+    "MCOIMP",
+    "TEAMS1",
+    "Teams_Room_Standard"
+  ],
+  "disabledFeatures": {
+    "report": false,
+    "warn": false,
+    "remediate": false
+  },
+  "secureScoreImpact": 0,
+  "compare": "subset",
+  "multiple": true,
+  "instanceIdentity": "customAppTemplate",
+  "identity": {
+    "partition": "CustomAppTemplate",
+    "nameField": "TemplateName"
+  },
+  "variables": {
+    "customAppTemplate": {
+      "type": "autoComplete",
+      "creatable": false,
+      "label": "Select Custom App Template",
+      "required": true,
+      "api": {
+        "url": "/api/ListCustomAppTemplates",
+        "labelField": "TemplateName",
+        "valueField": "GUID",
+        "queryKey": "ListCustomAppTemplates"
+      }
+    }
+  },
+  "read": {
+    "cacheType": "CustomApps"
+  },
+  "prepare": "Get-CIPPBaselineCustomAppTemplateState",
+  "remediate": {
+    "executor": "CustomAppTemplate"
+  }
+}

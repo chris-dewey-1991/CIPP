@@ -242,6 +242,7 @@ function Get-CIPPDBCacheSchedule {
                 'TeamsActivity'
                 'TeamsVoice'
                 'TeamsResourceAccounts'
+                'CustomApps'
             )
         }
     }

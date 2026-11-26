@@ -181,6 +181,7 @@ const CACHE_TYPE_COLLECTIONS = {
     "TeamsActivity",
     "TeamsVoice",
     "TeamsResourceAccounts",
+    "CustomApps",
   ],
   Defender: ["DefenderMachines", "DefenderIndicators", "DefenderCVEs"],
   DefenderForOffice365: [

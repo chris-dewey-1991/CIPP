@@ -831,6 +831,11 @@
     "description": "Teams Auto Attendant and Call Queue resource accounts from Teams.PlatformService"
   },
   {
+    "type": "CustomApps",
+    "friendlyName": "Custom Apps",
+    "description": "Custom (organisation) apps in the Teams and Microsoft 365 app catalog, with their versions"
+  },
+  {
     "type": "Fido2Configuration",
     "collectedBy": "AuthenticationMethodsPolicy",
     "friendlyName": "FIDO2 Authentication Method Configuration",
